@@ -134,7 +134,9 @@ class Bord:
         self.velden = {f["name"]: f for f in p["fields"]["nodes"] if f}
         for naam in ("Status", "Prioriteit"):
             if naam not in self.velden:
-                raise SystemExit(f"Veld '{naam}' ontbreekt op het bord (single select).")
+                gevonden = ", ".join(repr(n) for n in self.velden) or "geen"
+                raise SystemExit(f"Veld '{naam}' (single select) ontbreekt op het bord. "
+                                 f"Gevonden single select-velden: {gevonden}.")
 
     def toevoegen(self, content_id: str) -> tuple[str, str | None]:
         item = graphql(self.token, M_ADD, p=self.id, c=content_id)["addProjectV2ItemById"]["item"]
