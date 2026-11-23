@@ -118,3 +118,25 @@ Alleen openbare repo's, extra:
 - Semgrep en yamllint staan in `ci/requirements-*.txt`; Dependabot houdt ze bij.
 - Gitleaks staat met versie en checksum in `checks.yml` en wordt **handmatig** bijgewerkt.
 - Krijgt een privé-repo echte packagebestanden (lockfiles), dan voegen we daar OSV-Scanner toe, omdat `dependency-review-action` op privé-repo's niet werkt.
+
+## Bord
+
+Eén GitHub Project op het account van Michiel, met alle issues uit alle repo's (WORKFLOW.md §2). Elke repo roept `bord.yml` aan via [`templates/bord.yml`](templates/bord.yml); het script is `ci/bord.py`.
+
+| Gebeurtenis | Wat het bord doet |
+| --- | --- |
+| Issue geopend, bewerkt of heropend | Op het bord; veld *Prioriteit* uit `### Prioriteit`. Verplichte sjabloonvelden en prioriteit ingevuld → **Gepland**, anders **Idee** + label `wacht-op-info`. Alleen zolang het kaartje in Idee of Gepland staat. |
+| PR met `Closes #nr` (geopend, bewerkt, label) | Dat issue → **Bezig**; met label `risico` → **In review**. Nooit terug uit Klaar. |
+| Issue gesloten of PR gemerged | → **Klaar**, via de ingebouwde workflows van het Project (geen eigen code). |
+
+- Welke velden verplicht zijn, leest het script uit de centrale issue-sjablonen (`.github/ISSUE_TEMPLATE/`).
+- Labels die een workflow zet (zoals `risico` door de checks of de review), starten geen nieuwe workflows. Daarom werkt de PR-workflow het bord na de review nog eens bij.
+- Tokens: het bord wordt bijgewerkt met `PROJECT_TOKEN` (classic, alleen `project`-scope, door Michiel per repo als secret geplaatst). De repo zelf lezen en het label `wacht-op-info` zetten gebeurt met het gewone workflow-token.
+
+### Bord inrichten (eenmalig, Michiel)
+
+1. github.com → je profiel → **Projects → New project → Board**, naam bijv. `Werk`.
+2. Veld **Status** (bestaat al): opties exact `Idee`, `Gepland`, `Bezig`, `In review`, `Klaar`.
+3. Nieuw veld **Prioriteit**, type *Single select*: opties exact `Urgent`, `Hoog`, `Middel`, `Laag`.
+4. Project → **Workflows**: *Item closed* → Status `Klaar` en *Pull request merged* → Status `Klaar` aan; *Auto-add* uit (dat doet de Action).
+5. Token: Settings → Developer settings → **Tokens (classic)** → alleen scope `project`, met een vervaldatum; als secret `PROJECT_TOKEN` in elke repo.

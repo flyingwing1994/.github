@@ -1,0 +1,2 @@
+# Bord-script (leest de issue-sjablonen). Dependabot houdt deze versie bij.
+PyYAML==6.0.4
