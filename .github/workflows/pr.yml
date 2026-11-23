@@ -55,7 +55,7 @@ jobs:
       issues: write
       pull-requests: read
     with:
-      project: PROJECTNR
+      project: 1
       central-ref: ${{ github.event.pull_request.head.sha }}
     secrets:
       PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}

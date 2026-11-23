@@ -64,6 +64,6 @@ jobs:
       issues: write
       pull-requests: read
     with:
-      project: PROJECTNR   # nummer van het bord
+      project: 1   # nummer van het bord
     secrets:
       PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
