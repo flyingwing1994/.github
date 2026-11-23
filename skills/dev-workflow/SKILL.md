@@ -33,7 +33,7 @@ Taal: Nederlands. Conventional-Commits-voorvoegsels in het Engels.
 - Branch: `type/issuenr-omschrijving`, bijv. `feat/12-team-codes`, `fix/15-login-crash`, `docs/18-readme-ip-plan`.
 - Commits: `feat: … (#12)` — voorvoegsels `feat`, `fix`, `docs`, `chore`, `test`, `refactor`.
 - PR-titel: `feat: …` **zonder** issuenummer (GitHub zet het PR-nummer erachter bij de squash).
-- PR-beschrijving volgens `pull_request_template.md`: `Closes #nr`, Samenvatting (gewoon Nederlands), Technische wijzigingen, Zo getest, Docs, Risico.
+- PR-beschrijving volgens `.github/pull_request_template.md`: `Closes #nr`, Samenvatting (gewoon Nederlands), Technische wijzigingen, Zo getest, Docs, Risico.
 - Docs bijwerken in dezelfde PR (README of het juiste doc).
 - Nieuwe features en bugfixes krijgen tests (verplicht zodra het testbasis-issue van de repo klaar is).
 - Na het openen: vraag Michiel of Claude de PR moet volgen.
@@ -53,7 +53,7 @@ Op de vraag "overzicht": in review (PR's met `risico`), Urgent, en de top van Ge
 
 1. Stel bij een nieuw project altijd een repo voor, met advies privé of openbaar en de reden. Michiel beslist.
 2. Inrichten (issue → PR in die repo):
-   - `.github/workflows/pr.yml` uit `templates/pr.yml` (commando's invullen) en `.github/workflows/bord.yml` uit `templates/bord.yml`.
+   - `.github/workflows/pr.yml` uit `templates/pr.yml` (commando's invullen) en `.github/workflows/bord.yml` uit `templates/bord.yml` (beide in `flyingwing1994/.github`).
    - `.github/dependabot.yml`: wekelijks, `cooldown: default-days: 7`, gebundeld; ecosystemen van de repo + `github-actions` (+ `docker` waar van toepassing).
    - Labels uit `labels.yml` (aanmaken/bijwerken via de API).
    - Testbasis-issue als er nog geen tests zijn.
