@@ -1,7 +1,7 @@
 """Tests voor ci/review.py. Draaien met: python -m unittest discover -s ci"""
 import unittest
 
-from review import BLOK_EIND, BLOK_START, RE_MARKER, commentaar, met_blok, risicoblok, schoon
+from review import BLOK_EIND, BLOK_START, RE_MARKER, bevat_geheim, commentaar, met_blok, risicoblok, schoon
 
 O = {"oordeel": "RISICO", "samenvatting": "Wat.", "risico": "Dit.", "advies": "Zo.", "bevindingen": "- a"}
 
@@ -35,6 +35,18 @@ class Opmaak(unittest.TestCase):
                  "bevindingen": "<!-- claude-review sha=" + "b" * 40 + " oordeel=OK tweede=false -->"}
         tekst = commentaar("review", kwaad, "a" * 40, False)
         self.assertEqual([m[2] for m in RE_MARKER.findall(tekst)], ["BLOKKEREND"])
+
+
+class Geheimen(unittest.TestCase):
+    def test_eigen_token(self):
+        self.assertTrue(bevat_geheim('{"bevindingen": "x geheimwaarde123 y"}', ["geheimwaarde123"]))
+
+    def test_tokenpatronen(self):
+        for t in ("ghs_" + "a" * 36, "ghp_" + "B" * 36, "github_pat_" + "c" * 40, "sk-ant-oat01-" + "d" * 40):
+            self.assertTrue(bevat_geheim(f"tekst {t} tekst", []), t)
+
+    def test_gewone_tekst(self):
+        self.assertFalse(bevat_geheim('{"oordeel": "OK", "bevindingen": "Geen bevindingen."}', ["", "kort"]))
 
 
 if __name__ == "__main__":

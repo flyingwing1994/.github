@@ -123,17 +123,30 @@ def vorige(soort: str) -> int:
     repo, pr, sha = os.environ["REPO"], os.environ["PR"], os.environ["HEAD_SHA"]
     _, m = eigen_commentaar(commentaren(repo, pr), soort)
     if m and m.group(2) == sha:
-        print(f"Dit commit is al beoordeeld: {m.group(3)}. Oordeel hergebruikt.")
+        print(f"Dit commit is al beoordeeld: {m.group(3)}. Oordeel wordt hergebruikt.")
         schrijf("GITHUB_OUTPUT", f"hergebruik=true\noordeel={m.group(3)}\ntweede={m.group(4)}\n")
-        return 1 if m.group(3) == "BLOKKEREND" else 0
-    schrijf("GITHUB_OUTPUT", "hergebruik=false\n")
-    return 0
+    else:
+        schrijf("GITHUB_OUTPUT", "hergebruik=false\n")
+    return 0  # het eventuele falen bij BLOKKEREND doet de verwerk-job
+
+
+RE_TOKEN = re.compile(r"\b(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-ant-[A-Za-z0-9_-]{20,})")
+
+
+def bevat_geheim(tekst: str, geheimen: list[str]) -> bool:
+    """True als Claude's uitvoer een geheim of iets wat op een token lijkt bevat."""
+    return any(g and len(g) >= 8 and g in tekst for g in geheimen) or bool(RE_TOKEN.search(tekst))
 
 
 def verwerk(soort: str) -> int:
     repo, pr, sha = os.environ["REPO"], os.environ["PR"], os.environ["HEAD_SHA"]
+    ruw = os.environ.get("OUTPUT") or ""
+    if bevat_geheim(ruw, [os.environ.get("GEHEIM", "")]):
+        print("::error::Claude's uitvoer bevat een token of geheim. Niets geplaatst (fail-closed). "
+              "Controleer de PR op een poging tot prompt-injectie en vervang het token.")
+        return 1
     try:
-        o = json.loads(os.environ.get("OUTPUT") or "")
+        o = json.loads(ruw)
     except json.JSONDecodeError:
         o = {}
     if not isinstance(o, dict) or o.get("oordeel") not in OORDELEN[soort]:

@@ -59,7 +59,7 @@ De regels kijken naar bestandsnamen en packagelijsten. De inhoud (bijv. login-co
 
 ## Claude-review
 
-`review.yml` draait via het Pro-account van Michiel (secret `CLAUDE_CODE_OAUTH_TOKEN`, per repo geplaatst). Claude kan alleen lezen (PR, diff, gekoppeld issue, bestanden); commentaar, label en PR-tekst zet `ci/review.py` op basis van Claude's gestructureerde oordeel.
+`review.yml` draait via het Pro-account van Michiel (secret `CLAUDE_CODE_OAUTH_TOKEN`, per repo geplaatst). Claude draait in een job met **alleen leesrechten** (`review / analyse`, `review / analyse-second`): PR, diff, gekoppeld issue, bestanden. Commentaar, label en PR-tekst zet `ci/review.py` in een aparte job zonder Claude (`review / claude`, `review / second-opinion`); alleen die twee zijn verplichte checks. Bevat Claude's uitvoer het token of iets wat op een token lijkt, dan wordt niets geplaatst en is de check rood.
 
 Vaste criteria: correctheid (doet het wat het issue vraagt), beveiliging, tests, documentatie, scope ten opzichte van het issue, en inhoudelijk risico. Daarnaast leest Claude de `CLAUDE.md` van de repo en, als die bestaat, `.github/review.md` met extra criteria van die repo.
 
