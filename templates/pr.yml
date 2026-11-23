@@ -1,0 +1,43 @@
+# Sjabloon: kopieer naar .github/workflows/pr.yml in een repo en vul de commando's in.
+# Uitleg en alle invoervelden: https://github.com/flyingwing1994/.github/blob/main/CHECKS.md
+name: PR
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    uses: flyingwing1994/.github/.github/workflows/checks.yml@main
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    with:
+      # Leeg laten wat niet van toepassing is.
+      node-version: ""
+      python-version: ""
+      install: ""          # bijv. npm ci
+      lint: ""             # bijv. npm run lint
+      build: ""            # bijv. npm run build
+      test: ""             # bijv. npm test
+      tests-verplicht: false   # true zodra het testbasis-issue klaar is
+
+  # Eigen checks van deze repo (optioneel), bijv.:
+  # ha-config:
+  #   runs-on: ubuntu-latest
+  #   steps: ...
+
+  automerge:
+    needs: [checks]        # + eventuele eigen checks en (stap 5) de Claude-review
+    uses: flyingwing1994/.github/.github/workflows/automerge.yml@main
+    permissions:
+      contents: write
+      pull-requests: write

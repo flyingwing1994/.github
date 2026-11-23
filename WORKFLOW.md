@@ -60,7 +60,7 @@ Het overzicht (in review, urgent, top van Gepland) geeft Claude alleen op verzoe
 | Proces | Issue-koppeling, vaste risicoregels |
 
 - **Tests:** verplicht in code-repo's, na eenmalig een testbasis-issue per repo (tot dan alleen waarschuwing). Config/docs-repo's: automatische checks (YAML, HA-config, links) plus een verplicht "zo getest"-blok.
-- Repo's roepen de centrale checks aan en kunnen eigen checks toevoegen.
+- Repo's roepen de centrale checks aan en kunnen eigen checks toevoegen. Technische uitwerking: [`CHECKS.md`](CHECKS.md).
 
 ## 5. Risico en mergen
 

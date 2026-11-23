@@ -1,0 +1,52 @@
+# Centrale auto-merge, aangeroepen als laatste job (needs: alle checks). Zie CHECKS.md en WORKFLOW.md §5.
+# - Nooit bij label `risico`, een draft-PR, een fork of een onbekende auteur: dan merget Michiel zelf.
+# - Openbare repo: ingebouwde auto-merge van GitHub (wacht op de verplichte checks uit de ruleset).
+# - Privé-repo (geen Pro, geen rulesets): direct squash-mergen; de caller draait deze job pas als alles groen is.
+# Wijzigingen hier krijgen altijd het label `risico` (regel 1): Michiel merget zelf.
+name: Auto-merge
+
+on:
+  workflow_call:
+
+jobs:
+  automerge:
+    name: automerge
+    if: >-
+      github.event_name == 'pull_request'
+      && !github.event.pull_request.draft
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && (github.event.pull_request.user.login == github.repository_owner
+          || github.event.pull_request.user.login == 'dependabot[bot]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      ZICHTBAARHEID: ${{ github.event.repository.visibility }}
+    steps:
+      - name: Mergen als er geen risicovlag is
+        run: |
+          # Labels vers ophalen: de checks kunnen `risico` net gezet hebben.
+          labels=$(gh api "repos/$REPO/issues/$PR/labels" --jq '.[].name')
+          if grep -qx risico <<<"$labels"; then
+            echo "Label risico: geen auto-merge, Michiel merget zelf." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ "$(gh api "repos/$REPO/pulls/$PR" --jq .state)" != open ]; then
+            echo "PR is niet meer open; niets te doen."
+            exit 0
+          fi
+          if [ "$ZICHTBAARHEID" = public ]; then
+            if gh pr merge "$PR" -R "$REPO" --auto --squash --match-head-commit "$HEAD_SHA"; then
+              echo "Ingebouwde auto-merge aangezet." | tee -a "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "Ingebouwde auto-merge niet mogelijk (geen wachtende verplichte checks); direct mergen."
+          fi
+          gh pr merge "$PR" -R "$REPO" --squash --match-head-commit "$HEAD_SHA"
+          echo "Gemerged (squash)." | tee -a "$GITHUB_STEP_SUMMARY"
