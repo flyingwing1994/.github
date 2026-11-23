@@ -1,0 +1,12 @@
+# Standaard YAML-lint voor repo's zonder eigen .yamllint. Bewust ruim: syntax en duidelijke fouten.
+extends: relaxed
+
+ignore: |
+  node_modules/
+  .venv/
+  venv/
+  dist/
+  build/
+
+rules:
+  line-length: disable

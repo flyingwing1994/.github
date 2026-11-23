@@ -1,0 +1,2 @@
+# Semgrep voor de centrale checks. Dependabot houdt deze versie bij.
+semgrep==1.186.0

@@ -1,0 +1,28 @@
+# Dependabot voor de .github-repo zelf. Zie WORKFLOW.md §6.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
+    labels: [dependencies]
+    commit-message:
+      prefix: chore
+
+  - package-ecosystem: pip
+    directory: /ci
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      ci-tools:
+        patterns: ["*"]
+    labels: [dependencies]
+    commit-message:
+      prefix: chore

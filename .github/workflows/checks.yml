@@ -1,0 +1,238 @@
+# Centrale checks voor elke PR, aangeroepen door alle repo's. Zie CHECKS.md en WORKFLOW.md §4.
+# Wijzigingen hier krijgen altijd het label `risico` (regel 1): Michiel merget zelf.
+name: Checks
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Node-versie (bijv. "22"). Leeg = geen Node.
+        type: string
+        default: ""
+      python-version:
+        description: Python-versie (bijv. "3.12"). Leeg = geen extra Python.
+        type: string
+        default: ""
+      install:
+        description: Commando om afhankelijkheden te installeren (bijv. "npm ci"). Leeg = overslaan.
+        type: string
+        default: ""
+      lint:
+        description: Lint/format-commando. Leeg = alleen de algemene YAML-lint.
+        type: string
+        default: ""
+      build:
+        description: Build-commando. Leeg = overslaan.
+        type: string
+        default: ""
+      test:
+        description: Test-commando. Leeg = waarschuwing (of fout als tests-verplicht aan staat).
+        type: string
+        default: ""
+      tests-verplicht:
+        description: Zet op true zodra het testbasis-issue van de repo klaar is.
+        type: boolean
+        default: false
+      central-ref:
+        description: Versie van de centrale scripts. Alleen de .github-repo zelf wijkt hiervan af.
+        type: string
+        default: main
+
+env:
+  CENTRAL_REPO: https://github.com/flyingwing1994/.github
+  CENTRAL_REF: ${{ inputs.central-ref }}
+
+jobs:
+  geheimen:
+    name: geheimen
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Gitleaks installeren (vaste versie, checksum gecontroleerd)
+        run: |
+          cd "$RUNNER_TEMP"
+          curl -sSfL -o gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+      - name: Alle commits van de PR scannen
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          "$RUNNER_TEMP/gitleaks" git --no-banner --redact --verbose \
+            --log-opts="--no-merges ${BASE}..${HEAD}" .
+
+  semgrep:
+    name: semgrep
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Centrale scripts ophalen
+        run: |
+          git init -q "$RUNNER_TEMP/central"
+          git -C "$RUNNER_TEMP/central" fetch -q --depth 1 "$CENTRAL_REPO" "$CENTRAL_REF"
+          git -C "$RUNNER_TEMP/central" checkout -q FETCH_HEAD
+      - name: Semgrep installeren
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install -q -r "$RUNNER_TEMP/central/ci/requirements-semgrep.txt"
+      - name: Scannen (alleen nieuwe bevindingen; ERROR blokkeert)
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set +e
+          "$RUNNER_TEMP/venv/bin/semgrep" scan --config p/default --metrics=off \
+            --baseline-commit "$BASE" --json --output "$RUNNER_TEMP/semgrep.json" --quiet
+          code=$?
+          set -e
+          if [ "$code" -ne 0 ] || [ ! -s "$RUNNER_TEMP/semgrep.json" ]; then
+            echo "::error::Semgrep stopte met code $code; scan niet betrouwbaar."
+            exit 1
+          fi
+          python3 "$RUNNER_TEMP/central/ci/semgrep_samenvatting.py" "$RUNNER_TEMP/semgrep.json"
+
+  dependencies:
+    name: dependencies
+    # Alleen openbare repo's: op privé-repo's vereist dit betaalde GitHub Advanced Security.
+    if: github.event_name == 'pull_request' && github.event.repository.visibility == 'public'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # v5.0.1
+        with:
+          fail-on-severity: moderate
+          comment-summary-in-pr: on-failure
+
+  kwaliteit:
+    name: ${{ matrix.stap }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        stap: [lint, build, test]
+    env:
+      STAP: ${{ matrix.stap }}
+      INSTALL: ${{ inputs.install }}
+      CMD: ${{ matrix.stap == 'lint' && inputs.lint || matrix.stap == 'build' && inputs.build || inputs.test }}
+      TESTS_VERPLICHT: ${{ inputs.tests-verplicht }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Centrale scripts ophalen
+        if: matrix.stap == 'lint'
+        run: |
+          git init -q "$RUNNER_TEMP/central"
+          git -C "$RUNNER_TEMP/central" fetch -q --depth 1 "$CENTRAL_REPO" "$CENTRAL_REF"
+          git -C "$RUNNER_TEMP/central" checkout -q FETCH_HEAD
+      - name: YAML-lint (altijd)
+        if: matrix.stap == 'lint'
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install -q -r "$RUNNER_TEMP/central/ci/requirements-lint.txt"
+          config=()
+          if [ ! -e .yamllint ] && [ ! -e .yamllint.yml ] && [ ! -e .yamllint.yaml ]; then
+            config=(-c "$RUNNER_TEMP/central/ci/yamllint.yml")
+          fi
+          "$RUNNER_TEMP/venv/bin/yamllint" "${config[@]}" -f github .
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: inputs.node-version != '' && env.CMD != ''
+        with:
+          node-version: ${{ inputs.node-version }}
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        if: inputs.python-version != '' && env.CMD != ''
+        with:
+          python-version: ${{ inputs.python-version }}
+      - name: Afhankelijkheden installeren
+        if: env.INSTALL != '' && env.CMD != ''
+        run: eval "$INSTALL"
+      - name: Uitvoeren
+        run: |
+          if [ -n "$CMD" ]; then
+            eval "$CMD"
+          elif [ "$STAP" = test ] && [ "$TESTS_VERPLICHT" = true ]; then
+            echo "::error::Tests zijn verplicht voor deze repo, maar er is geen test-commando ingesteld."
+            exit 1
+          elif [ "$STAP" = test ]; then
+            echo "::warning::Nog geen tests ingesteld. Maak een testbasis-issue (WORKFLOW.md §4)."
+            echo "⚠️ Nog geen tests ingesteld; maak een testbasis-issue." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Geen $STAP-commando ingesteld; overgeslagen."
+          fi
+
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Interne links in Markdown controleren
+        if: hashFiles('**/*.md') != ''
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: --offline --no-progress --exclude-path node_modules './**/*.md'
+          fail: true
+          jobSummary: true
+
+  proces:
+    name: proces
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Centrale scripts ophalen
+        run: |
+          git init -q "$RUNNER_TEMP/central"
+          git -C "$RUNNER_TEMP/central" fetch -q --depth 1 "$CENTRAL_REPO" "$CENTRAL_REF"
+          git -C "$RUNNER_TEMP/central" checkout -q FETCH_HEAD
+      - name: Issue-koppeling en vaste risicoregels
+        id: r
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: python3 "$RUNNER_TEMP/central/ci/risico.py" --base "$BASE" --head "$HEAD"
+      - name: Label risico zetten
+        if: always() && steps.r.outputs.risico == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: gh api "repos/$REPO/issues/$PR/labels" -f "labels[]=risico" --silent
