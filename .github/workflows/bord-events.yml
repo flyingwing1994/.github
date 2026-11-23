@@ -1,0 +1,24 @@
+# Bord voor de .github-repo zelf (issues en PR's). Andere repo's: templates/bord.yml.
+name: Bord
+
+on:
+  issues:
+    types: [opened, edited, reopened]
+  pull_request:
+    types: [opened, reopened, edited, ready_for_review, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  bord:
+    uses: ./.github/workflows/bord.yml
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    with:
+      project: PROJECTNR
+      central-ref: ${{ github.event.pull_request.head.sha || 'main' }}
+    secrets:
+      PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}

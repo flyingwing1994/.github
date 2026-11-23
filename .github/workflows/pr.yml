@@ -44,3 +44,18 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+
+  bord:
+    # Na de review: zet gekoppelde issues op In review als de checks of de review `risico` zetten.
+    needs: [review]
+    if: ${{ !cancelled() }}
+    uses: ./.github/workflows/bord.yml
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    with:
+      project: PROJECTNR
+      central-ref: ${{ github.event.pull_request.head.sha }}
+    secrets:
+      PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
