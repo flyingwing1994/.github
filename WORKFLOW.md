@@ -82,7 +82,7 @@ Een PR krijgt het label `risico` als **een** van deze twee iets vindt:
 | Geen vlag, alles groen | Automatisch gemerged |
 | Wel een vlag | Michiel merget zelf. Claude zet bovenaan de PR in gewoon Nederlands wat er verandert, wat het risico is en wat Claude adviseert. Code lezen is niet nodig. |
 
-**Second opinion:** GitHub Models, alleen bij een vlag of een security-gevoelige wijziging.
+**Second opinion:** een tweede Claude-ronde gericht op beveiliging, alleen bij een vlag of een security-gevoelige wijziging. (GitHub Models, het eerdere plan, is op 30-07-2026 door GitHub gestopt.)
 
 ## 6. Dependencies
 

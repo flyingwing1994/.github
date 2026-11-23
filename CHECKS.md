@@ -37,6 +37,8 @@ Elke repo krijgt dezelfde check-namen, zodat de lijst verplichte checks overal g
 | `checks / test` | Het `test`-commando. Leeg = waarschuwing, tot `tests-verplicht: true` | Ja |
 | `checks / docs` | Interne links in Markdown (bestanden en ankers, geen externe sites) | Ja |
 | `checks / proces` | Issue-koppeling (`Closes #nr`) en de vaste risicoregels | Alleen ontbrekende issue-koppeling |
+| `review / claude` | Claude-review op vaste criteria (zie [Claude-review](#claude-review)); pas na groene checks | Bij BLOKKEREND of geen oordeel |
+| `review / second-opinion` | Tweede Claude-ronde op beveiliging; alleen bij een vlag of security-gevoelige wijziging, anders overgeslagen | Bij BLOKKEREND |
 | `automerge / automerge` | Merget als alles groen is en er geen `risico`-label is | — |
 
 Dependabot-PR's hoeven geen issue te koppelen.
@@ -54,6 +56,24 @@ Dependabot-PR's hoeven geen issue te koppelen.
 7. meer dan 400 regels wijzigt (lockfiles niet meegeteld).
 
 De regels kijken naar bestandsnamen en packagelijsten. De inhoud (bijv. login-code in een gewoon bestand) beoordeelt de Claude-review. Het script zet het label alleen; weghalen doet Michiel.
+
+## Claude-review
+
+`review.yml` draait via het Pro-account van Michiel (secret `CLAUDE_CODE_OAUTH_TOKEN`, per repo geplaatst). Claude draait in een job met **alleen leesrechten** (`review / analyse`, `review / analyse-second`): PR, diff, gekoppeld issue, bestanden. Commentaar, label en PR-tekst zet `ci/review.py` in een aparte job zonder Claude (`review / claude`, `review / second-opinion`); alleen die twee zijn verplichte checks. Bevat Claude's uitvoer het token of iets wat op een token lijkt, dan wordt niets geplaatst en is de check rood.
+
+Vaste criteria: correctheid (doet het wat het issue vraagt), beveiliging, tests, documentatie, scope ten opzichte van het issue, en inhoudelijk risico. Daarnaast leest Claude de `CLAUDE.md` van de repo en, als die bestaat, `.github/review.md` met extra criteria van die repo.
+
+| Oordeel | Check | Gevolg |
+| --- | --- | --- |
+| OK | Groen | Auto-merge mag door |
+| RISICO | Groen | Label `risico`; bovenaan de PR in gewoon Nederlands wat er verandert, het risico en het advies; second opinion; Michiel merget zelf |
+| BLOKKEREND | Rood | Commentaar met wat er eerst moet gebeuren |
+| Geen oordeel | Rood | Fail-closed (bijv. token ontbreekt of verlopen) |
+
+- **Second opinion** draait bij RISICO, bij een security-gevoelige wijziging of als `proces` al `risico` zette. Hij kijkt als aanvaller en blokkeert alleen bij een concreet beveiligingsprobleem.
+- **Zelfde commit** wordt niet opnieuw gereviewd (bijv. na het aanpassen van de PR-tekst): het oordeel uit het eerdere commentaar wordt hergebruikt. Opnieuw laten reviewen: verwijder het review-commentaar en draai de job opnieuw.
+- **Dependabot-PR's** worden overgeslagen (Dependabot kan niet bij het token). Grote sprongen krijgen via de vaste regels toch `risico`.
+- **Tegoed:** elke review gebruikt het Pro-tegoed van Michiel, gedeeld met zijn eigen gebruik van Claude. De review draait daarom pas als de checks groen zijn.
 
 ## Auto-merge
 
@@ -77,6 +97,10 @@ Handmatig, want Claude kan repo-instellingen niet wijzigen. Settings → General
 - Always suggest updating pull request branches: **aan**
 - Allow auto-merge: **aan**
 - Automatically delete head branches: **aan**
+
+Alle repo's, Settings → Secrets and variables → Actions → New repository secret:
+
+- `CLAUDE_CODE_OAUTH_TOKEN`: het token uit `claude setup-token` (Michiel plaatst het zelf; Claude ziet de waarde nooit)
 
 Alle repo's, Settings → Advanced Security:
 
