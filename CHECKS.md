@@ -78,6 +78,11 @@ Handmatig, want Claude kan repo-instellingen niet wijzigen. Settings → General
 - Allow auto-merge: **aan**
 - Automatically delete head branches: **aan**
 
+Alle repo's, Settings → Advanced Security:
+
+- *Dependency graph*: **aan** (nodig voor `checks / dependencies` op openbare repo's)
+- *Dependabot alerts* en *Dependabot security updates*: **aan** (WORKFLOW.md §6: beveiligingsupdates direct)
+
 Alleen openbare repo's, extra:
 
 - Settings → Rules → Rulesets: ruleset op `main` met *Restrict deletions*, *Block force pushes*, *Require a pull request before merging* (0 goedkeuringen) en *Require status checks to pass* met de checks hierboven (zonder `automerge`).
