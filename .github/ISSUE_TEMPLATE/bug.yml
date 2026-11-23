@@ -1,0 +1,60 @@
+name: Bug
+description: Iets werkt niet zoals het hoort
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: wat
+    attributes:
+      label: Wat gebeurt er, en wat had je verwacht?
+    validations:
+      required: true
+  - type: textarea
+    id: stappen
+    attributes:
+      label: Stappen om het te laten gebeuren
+      value: |
+        1.
+    validations:
+      required: true
+  - type: input
+    id: sinds
+    attributes:
+      label: Sinds wanneer
+  - type: input
+    id: voor-wie
+    attributes:
+      label: Voor wie
+      description: Michiel, Shirley, vrienden, gasten?
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Workaround
+      description: Is er een manier om er omheen te werken?
+  - type: input
+    id: deadline
+    attributes:
+      label: Deadline
+  - type: textarea
+    id: gevolg
+    attributes:
+      label: Gevolg als het blijft
+    validations:
+      required: true
+  - type: dropdown
+    id: prioriteit
+    attributes:
+      label: Prioriteit
+      options:
+        - Urgent
+        - Hoog
+        - Middel
+        - Laag
+    validations:
+      required: true
+  - type: textarea
+    id: onderbouwing
+    attributes:
+      label: Onderbouwing prioriteit
+    validations:
+      required: true

@@ -1,0 +1,54 @@
+name: Feature
+description: Nieuwe functionaliteit of uitbreiding
+title: "[Feature] "
+labels: ["feature"]
+body:
+  - type: textarea
+    id: doel
+    attributes:
+      label: Doel
+      description: Welk probleem lost dit op, en voor wie (Michiel, Shirley, vrienden, gasten)?
+    validations:
+      required: true
+  - type: textarea
+    id: gedrag
+    attributes:
+      label: Gewenst gedrag
+      description: Checklist van wat er moet werken. Dit zijn de acceptatiecriteria; de tests worden hierop gebaseerd.
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: buiten-scope
+    attributes:
+      label: Buiten scope
+      description: Wat valt hier bewust niet onder?
+  - type: input
+    id: deadline
+    attributes:
+      label: Deadline
+      description: Wanneer moet dit idealiter klaar zijn? Is er een vaste datum?
+  - type: textarea
+    id: gevolg
+    attributes:
+      label: Gevolg als het niet gebeurt
+    validations:
+      required: true
+  - type: dropdown
+    id: prioriteit
+    attributes:
+      label: Prioriteit
+      options:
+        - Urgent
+        - Hoog
+        - Middel
+        - Laag
+    validations:
+      required: true
+  - type: textarea
+    id: onderbouwing
+    attributes:
+      label: Onderbouwing prioriteit
+    validations:
+      required: true

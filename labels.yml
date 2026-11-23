@@ -1,0 +1,28 @@
+# Standaardlabels voor alle repo's. Claude zet deze in elke repo bij het inrichten.
+- name: feature
+  color: "1f883d"
+  description: Nieuwe functionaliteit
+- name: bug
+  color: "d1242f"
+  description: Iets werkt niet zoals het hoort
+- name: klein
+  color: "8c959f"
+  description: Kleine aanpassing
+- name: docs
+  color: "0969da"
+  description: Documentatie
+- name: onderhoud
+  color: "bf8700"
+  description: Onderhoud, opruimen, tooling
+- name: security
+  color: "8250df"
+  description: Beveiliging
+- name: dependencies
+  color: "0550ae"
+  description: Updates van packages
+- name: risico
+  color: "cf222e"
+  description: Gezet door de checks; Michiel merget zelf
+- name: wacht-op-info
+  color: "fbca04"
+  description: Triage-info ontbreekt nog

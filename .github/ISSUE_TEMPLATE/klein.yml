@@ -1,0 +1,29 @@
+name: Klein
+description: Kleine aanpassing, zoals een typfout of een kleine docs-tweak
+title: "[Klein] "
+labels: ["klein"]
+body:
+  - type: textarea
+    id: wat
+    attributes:
+      label: Wat
+    validations:
+      required: true
+  - type: textarea
+    id: waarom
+    attributes:
+      label: Waarom
+    validations:
+      required: true
+  - type: dropdown
+    id: prioriteit
+    attributes:
+      label: Prioriteit
+      options:
+        - Urgent
+        - Hoog
+        - Middel
+        - Laag
+      default: 3
+    validations:
+      required: true
