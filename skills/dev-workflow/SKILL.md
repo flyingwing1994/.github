@@ -17,7 +17,7 @@ Taal: Nederlands. Conventional-Commits-voorvoegsels in het Engels.
 - Claude doet al het git- en GitHub-werk (issue, branch, commits, push, PR). Commando's op machines (ssh, `pct`, `qm`, Home Assistant) niet: geef die als blok aan Michiel.
 - Geheimen nooit in git of chat. Michiel plaatst ze als GitHub-secret; Claude ziet de waarde nooit.
 - Vragen één voor één, gesloten, met advies. Stappen voor Michiel als blok, met per stap het verwachte resultaat.
-- Repo-instellingen kan Claude niet wijzigen: geef ze als blok (zie CHECKS.md, Instellingen per repo).
+- Repo-instellingen en secrets kan Claude niet wijzigen: laat Michiel `scripts/repo-inrichten.ps1 -Repos <naam>` uit `flyingwing1994/.github` draaien (zie CHECKS.md, Instellingen per repo).
 - De `CLAUDE.md` van een repo kan aanvullende afspraken hebben (bijv. homelab-config: harde kaders, schrijfroute). Volg die ook; bij tegenspraak: eerst Michiel vragen.
 
 ## 1. Idee of bug → issue
@@ -55,7 +55,6 @@ Op de vraag "overzicht": in review (PR's met `risico`), Urgent, en de top van Ge
 2. Inrichten (issue → PR in die repo):
    - `.github/workflows/pr.yml` uit `templates/pr.yml` (commando's invullen) en `.github/workflows/bord.yml` uit `templates/bord.yml` (beide in `flyingwing1994/.github`).
    - `.github/dependabot.yml`: wekelijks, `cooldown: default-days: 7`, gebundeld; ecosystemen van de repo + `github-actions` (+ `docker` waar van toepassing).
-   - Labels uit `labels.yml` (aanmaken/bijwerken via de API).
    - Testbasis-issue als er nog geen tests zijn.
-3. Blok voor Michiel: repo-instellingen, secrets `CLAUDE_CODE_OAUTH_TOKEN` en `PROJECT_TOKEN`, Advanced Security, en op openbare repo's de ruleset met verplichte checks (CHECKS.md).
+3. Michiel draait `scripts/repo-inrichten.ps1 -Repos <naam>`: merge-instellingen, beveiliging, ruleset (openbaar), labels en de secrets `CLAUDE_CODE_OAUTH_TOKEN` en `PROJECT_TOKEN`.
 4. Privé-repo met echte packagebestanden: OSV-Scanner toevoegen (dependency-review werkt daar niet).

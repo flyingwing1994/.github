@@ -89,7 +89,15 @@ De merge gebeurt met het workflow-token. Let op: zo'n merge start **geen** nieuw
 
 ## Instellingen per repo
 
-Handmatig, want Claude kan repo-instellingen niet wijzigen. Settings → General → Pull Requests:
+**Snelst: [`scripts/repo-inrichten.ps1`](scripts/repo-inrichten.ps1)**, lokaal door Michiel gedraaid (Claude kan repo-instellingen en secrets niet wijzigen, en ziet secrets nooit). Het script zet alles hieronder in één keer, voor een of meer repo's, en vraagt de twee tokens verborgen:
+
+```powershell
+# eenmalig: winget install GitHub.cli ; gh auth login
+.\scripts\repo-inrichten.ps1 -Repos yaniv-scorekeeper
+.\scripts\repo-inrichten.ps1 -Repos fotospel,feest -GeenSecrets   # secrets niet opnieuw zetten
+```
+
+Opnieuw draaien is veilig. Wat het script zet, staat hieronder (ook om met de hand te doen of na te kijken). Settings → General → Pull Requests:
 
 - Allow merge commits: **uit**
 - Allow squash merging: **aan**, standaardbericht *Pull request title and description*
@@ -111,6 +119,8 @@ Alleen openbare repo's, extra:
 
 - Settings → Rules → Rulesets: ruleset op `main` met *Restrict deletions*, *Block force pushes*, *Require a pull request before merging* (0 goedkeuringen) en *Require status checks to pass* met de checks hierboven (zonder `automerge`).
 - Settings → Advanced Security: *Secret Protection* en *Push protection* aan.
+
+Labels: die uit [`labels.yml`](labels.yml); ongebruikte standaardlabels van GitHub worden verwijderd.
 
 ## Versies
 

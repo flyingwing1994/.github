@@ -9,6 +9,7 @@ Standaard sjablonen, labels en checks voor alle repo's van flyingwing1994.
 - [`CHECKS.md`](CHECKS.md) — centrale checks en auto-merge: hoe een repo ze aanroept.
 - [`templates/pr.yml`](templates/pr.yml) — sjabloon voor de PR-workflow in een repo.
 - [`skills/dev-workflow/SKILL.md`](skills/dev-workflow/SKILL.md) — de werkwijze als Claude-skill.
+- [`scripts/repo-inrichten.ps1`](scripts/repo-inrichten.ps1) — repo-instellingen, beveiliging, ruleset, labels en secrets in één keer zetten (zie CHECKS.md).
 
 ## Skill installeren of bijwerken (Windows, PowerShell)
 
