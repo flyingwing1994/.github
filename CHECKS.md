@@ -22,6 +22,8 @@ De repo verwijst naar `@main`. Een wijziging aan de centrale checks geldt dus me
 | `build` | Build | `npm run build` |
 | `test` | Tests | `npm test` |
 | `tests-verplicht` | `true` zodra het testbasis-issue klaar is | `false` |
+| `docker-build` | `true` als de repo een Dockerfile heeft die op de server draait | `false` |
+| `docker-context` | Map met de Dockerfile | `"."` |
 
 ## Checks
 
@@ -36,6 +38,7 @@ Elke repo krijgt dezelfde check-namen, zodat de lijst verplichte checks overal g
 | `checks / build` | Het `build`-commando | Ja |
 | `checks / test` | Het `test`-commando. Leeg = waarschuwing, tot `tests-verplicht: true` | Ja |
 | `checks / docs` | Interne links in Markdown (bestanden en ankers, geen externe sites) | Ja |
+| `checks / docker` | Bouwt de Docker-image (zonder push) als `docker-build: true`; anders overgeslagen. Verplicht voor alles wat op de server draait | Ja |
 | `checks / proces` | Issue-koppeling (`Closes #nr`) en de vaste risicoregels | Alleen ontbrekende issue-koppeling |
 | `review / claude` | Claude-review op vaste criteria (zie [Claude-review](#claude-review)); pas na groene checks | Bij BLOKKEREND of geen oordeel |
 | `review / second-opinion` | Tweede Claude-ronde op beveiliging; alleen bij een vlag of security-gevoelige wijziging, anders overgeslagen | Bij BLOKKEREND |
@@ -127,7 +130,7 @@ Alle repo's, Settings → Advanced Security:
 
 Alleen openbare repo's, extra:
 
-- Settings → Rules → Rulesets: ruleset op `main` met *Restrict deletions*, *Block force pushes*, *Require a pull request before merging* (0 goedkeuringen) en *Require status checks to pass* met de checks hierboven (zonder `automerge`).
+- Settings → Rules → Rulesets: ruleset op `main` met *Restrict deletions*, *Block force pushes*, *Require a pull request before merging* (0 goedkeuringen) en *Require status checks to pass* met de checks hierboven (zonder `automerge` en de `analyse`-jobs).
 - Settings → Advanced Security: *Secret Protection* en *Push protection* aan.
 
 Labels: die uit [`labels.yml`](labels.yml); ongebruikte standaardlabels van GitHub worden verwijderd.

@@ -33,6 +33,14 @@ on:
         description: Zet op true zodra het testbasis-issue van de repo klaar is.
         type: boolean
         default: false
+      docker-build:
+        description: Zet op true als de repo een Dockerfile heeft die op de server draait.
+        type: boolean
+        default: false
+      docker-context:
+        description: Map met de Dockerfile (bouwcontext).
+        type: string
+        default: "."
       central-ref:
         description: Versie van de centrale scripts. Alleen de .github-repo zelf wijkt hiervan af.
         type: string
@@ -202,6 +210,29 @@ jobs:
           args: --offline --no-progress --exclude-path node_modules './**/*.md'
           fail: true
           jobSummary: true
+
+  docker:
+    name: docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      DOCKER_BUILD: ${{ inputs.docker-build }}
+      DOCKER_CONTEXT: ${{ inputs.docker-context }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: inputs.docker-build
+        with:
+          persist-credentials: false
+      - name: Image bouwen (zonder push)
+        run: |
+          if [ "$DOCKER_BUILD" != true ]; then
+            echo "Geen Docker-build ingesteld; overgeslagen."
+            exit 0
+          fi
+          docker build --pull --tag ci-controle:pr "$DOCKER_CONTEXT"
+          echo "✅ Docker-image bouwt (\`$DOCKER_CONTEXT\`)." >> "$GITHUB_STEP_SUMMARY"
 
   proces:
     name: proces

@@ -29,6 +29,7 @@ jobs:
       build: ""            # bijv. npm run build
       test: ""             # bijv. npm test
       tests-verplicht: false   # true zodra het testbasis-issue klaar is
+      docker-build: false      # true als de repo op de server draait (Dockerfile)
 
   # Eigen checks van deze repo (optioneel), bijv.:
   # ha-config:
