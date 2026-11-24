@@ -25,7 +25,10 @@ on:
 jobs:
   bord:
     name: bord
-    if: github.event_name == 'issues' || github.event.pull_request.head.repo.full_name == github.repository
+    # Niet voor Dependabot (krijgt geen secrets; sluit geen issues) en niet voor forks.
+    if: >-
+      github.actor != 'dependabot[bot]'
+      && (github.event_name == 'issues' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

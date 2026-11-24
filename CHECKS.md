@@ -142,6 +142,7 @@ Eén GitHub Project op het account van Michiel, met alle issues uit alle repo's 
 | Issue gesloten of PR gemerged | → **Klaar**, via de ingebouwde workflows van het Project (geen eigen code). |
 
 - Welke velden verplicht zijn, leest het script uit de centrale issue-sjablonen (`.github/ISSUE_TEMPLATE/`).
+- PR's van Dependabot en vanaf forks worden overgeslagen (Dependabot krijgt geen secrets en sluit geen issues).
 - Labels die een workflow zet (zoals `risico` door de checks of de review), starten geen nieuwe workflows. Daarom werkt de PR-workflow het bord na de review nog eens bij.
 - Tokens: het bord wordt bijgewerkt met `PROJECT_TOKEN` (classic, alleen `project`-scope, door Michiel per repo als secret geplaatst). De repo zelf lezen en het label `wacht-op-info` zetten gebeurt met het gewone workflow-token.
 
