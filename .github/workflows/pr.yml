@@ -22,7 +22,7 @@ jobs:
       issues: write
     with:
       central-ref: ${{ github.event.pull_request.head.sha }}
-      test: python3 -m unittest discover -s ci -v
+      test: python3 -m unittest discover -s ci -v && pwsh -NoProfile -File ci/check_ps.ps1
       tests-verplicht: true
 
   review:
