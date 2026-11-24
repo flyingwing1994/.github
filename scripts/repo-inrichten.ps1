@@ -6,7 +6,9 @@
 .DESCRIPTION
   Draai dit lokaal met de GitHub CLI (gh), ingelogd als de eigenaar van de repo's.
   Opnieuw draaien is veilig: alles wordt (opnieuw) op de juiste waarde gezet.
-  De secrets worden een keer verborgen gevraagd en nergens opgeslagen of getoond.
+  De secrets worden een keer verborgen gevraagd en nooit getoond. Met -Onthoud worden ze
+  versleuteld met je Windows-account (DPAPI) bewaard in $HOME\.repo-inrichten\tokens.xml,
+  buiten elke repo; volgende runs lezen ze daaruit. -NieuweTokens vraagt ze opnieuw.
 
 .EXAMPLE
   .\repo-inrichten.ps1 -Repos yaniv-scorekeeper
@@ -16,14 +18,24 @@
 
 .EXAMPLE
   .\repo-inrichten.ps1 -Repos fotospel -GeenSecrets
+
+.EXAMPLE
+  .\repo-inrichten.ps1 -Repos yaniv-scorekeeper -Onthoud      # eerste keer: vragen en onthouden
+  .\repo-inrichten.ps1 -Repos feest                           # daarna: niets meer vragen
+  .\repo-inrichten.ps1 -Repos .github,feest -NieuweTokens     # na een nieuw token
 #>
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)] [string[]] $Repos,
   [string] $Eigenaar = 'flyingwing1994',
   [switch] $GeenSecrets,
-  [switch] $GeenRuleset
+  [switch] $GeenRuleset,
+  [switch] $Onthoud,
+  [switch] $NieuweTokens
 )
+
+$TokenBestand = Join-Path (Join-Path $HOME '.repo-inrichten') 'tokens.xml'
+$TokenNamen = @('CLAUDE_CODE_OAUTH_TOKEN', 'PROJECT_TOKEN')
 
 # Fouten van gh worden via de exitcode afgevangen (PowerShell 5 ziet uitvoer op stderr anders als fout).
 $ErrorActionPreference = 'Continue'
@@ -69,9 +81,9 @@ function GhJson {
 function Stap([string] $Tekst) { Write-Host "    OK  $Tekst" -ForegroundColor Green }
 function Bezig([string] $Tekst) { Write-Host "  ... $Tekst" -ForegroundColor DarkGray }
 
-function LeesSecret([string] $Naam) {
-  $veilig = Read-Host "Plak $Naam (Enter = overslaan)" -AsSecureString
-  $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($veilig)
+function NaarTekst([securestring] $Veilig) {
+  if (-not $Veilig -or $Veilig.Length -eq 0) { return '' }
+  $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Veilig)
   try { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr) }
   finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
 }
@@ -197,9 +209,30 @@ Write-Host 'labels.yml ophalen...'
 $labels = LeesLabels
 $secrets = @{}
 if (-not $GeenSecrets) {
-  Write-Host 'Secrets worden verborgen gevraagd en in alle opgegeven repo''s gezet.'
-  $secrets['CLAUDE_CODE_OAUTH_TOKEN'] = LeesSecret 'CLAUDE_CODE_OAUTH_TOKEN'
-  $secrets['PROJECT_TOKEN'] = LeesSecret 'PROJECT_TOKEN'
+  $opgeslagen = $null
+  if ((Test-Path $TokenBestand) -and -not $NieuweTokens) {
+    try {
+      $opgeslagen = Import-Clixml $TokenBestand -ErrorAction Stop
+      Write-Host "Tokens gelezen uit $TokenBestand."
+    } catch {
+      Write-Host 'Opgeslagen tokens niet te lezen (andere pc of gebruiker?); ik vraag ze opnieuw.' -ForegroundColor Yellow
+    }
+  }
+  if (-not $opgeslagen) {
+    $opgeslagen = @{}
+    Write-Host 'Tokens worden verborgen gevraagd (plakken met rechtermuisknop; je ziet niets) en in alle opgegeven repo''s gezet.'
+    foreach ($n in $TokenNamen) { $opgeslagen[$n] = Read-Host "Plak $n (Enter = overslaan)" -AsSecureString }
+    if ($Onthoud -or $NieuweTokens) {
+      if ([Environment]::OSVersion.Platform -ne 'Win32NT') {
+        Write-Host 'Onthouden kan alleen op Windows (versleuteling met je Windows-account); niet bewaard.' -ForegroundColor Yellow
+      } else {
+        New-Item -ItemType Directory -Force (Split-Path $TokenBestand) | Out-Null
+        $opgeslagen | Export-Clixml -Path $TokenBestand -Force -ErrorAction Stop
+        Write-Host "Tokens versleuteld bewaard in $TokenBestand (alleen leesbaar voor jouw Windows-gebruiker op deze pc)."
+      }
+    }
+  }
+  foreach ($n in $TokenNamen) { $secrets[$n] = NaarTekst $opgeslagen[$n] }
 }
 
 $fouten = @()
