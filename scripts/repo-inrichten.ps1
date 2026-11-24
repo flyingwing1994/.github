@@ -46,7 +46,7 @@ $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 # Verplichte checks in de ruleset (gelijk aan CHECKS.md).
 $VerplichteChecks = @(
   'checks / geheimen', 'checks / semgrep', 'checks / dependencies', 'checks / lint',
-  'checks / build', 'checks / test', 'checks / docs', 'checks / proces',
+  'checks / build', 'checks / test', 'checks / docs', 'checks / docker', 'checks / proces',
   'review / claude', 'review / second-opinion'
 )
 $StandaardLabels = @('documentation', 'duplicate', 'enhancement', 'good first issue', 'help wanted',
