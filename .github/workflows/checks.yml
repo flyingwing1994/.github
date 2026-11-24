@@ -137,7 +137,8 @@ jobs:
     env:
       STAP: ${{ matrix.stap }}
       INSTALL: ${{ inputs.install }}
-      CMD: ${{ matrix.stap == 'lint' && inputs.lint || matrix.stap == 'build' && inputs.build || inputs.test }}
+      # Direct op naam ophalen: met 'a && x || b && y || z' valt een leeg veld door naar het volgende.
+      CMD: ${{ inputs[matrix.stap] }}
       TESTS_VERPLICHT: ${{ inputs.tests-verplicht }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
