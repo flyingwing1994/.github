@@ -57,7 +57,7 @@ Op de vraag "overzicht": in review (PR's met `risico`), Urgent, en de top van Ge
    `Invoke-WebRequest -Headers @{Accept='application/vnd.github.raw'} https://api.github.com/repos/flyingwing1994/.github/contents/scripts/repo-inrichten.ps1 -OutFile "$HOME\repo-inrichten.ps1"`
    en dan `powershell -ExecutionPolicy Bypass -File "$HOME\repo-inrichten.ps1" -Repos <naam>` (tokens zijn onthouden met `-Onthoud`).
 4. Eén PR "centrale workflow aansluiten" (issue → PR in die repo):
-   - `.github/workflows/pr.yml` uit `templates/pr.yml`: commando's invullen; `node-version`/`python-version` **gelijk aan de Dockerfile**; job `automerge` met `issues: write`.
+   - `.github/workflows/pr.yml` uit `templates/pr.yml`: commando's invullen; `node-version`/`python-version` **gelijk aan de Dockerfile**; job `automerge` met `issues: write`; **`docker-build: true` voor alles wat op de server draait** (besluit Michiel).
    - `.github/workflows/bord.yml` uit `templates/bord.yml`.
    - `.github/dependabot.yml`: wekelijks, `cooldown: default-days: 7`, gebundeld; ecosystemen van de repo + `github-actions` (+ `docker` waar van toepassing).
    - `CLAUDE.md` met de werkwijze-regel (zie WORKFLOW.md §8) en een korte beschrijving van de repo.
