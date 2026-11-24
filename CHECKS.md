@@ -95,9 +95,11 @@ De merge gebeurt met het workflow-token. Let op: zo'n merge start **geen** nieuw
 # eenmalig: winget install GitHub.cli ; gh auth login
 .\scripts\repo-inrichten.ps1 -Repos yaniv-scorekeeper
 .\scripts\repo-inrichten.ps1 -Repos fotospel,feest -GeenSecrets   # secrets niet opnieuw zetten
+.\scripts\repo-inrichten.ps1 -Repos feest -Onthoud            # tokens versleuteld onthouden (DPAPI, buiten elke repo)
+.\scripts\repo-inrichten.ps1 -Repos .github,feest -NieuweTokens   # na een nieuw token: opnieuw vragen en bewaren
 ```
 
-Opnieuw draaien is veilig. Wat het script zet, staat hieronder (ook om met de hand te doen of na te kijken). Settings → General → Pull Requests:
+Opnieuw draaien is veilig. Met `-Onthoud` staan de tokens versleuteld met het Windows-account van Michiel in `$HOME\.repo-inrichten\tokens.xml` (nooit in een repo, nooit als platte tekst); volgende runs vragen dan niets meer. Wat het script zet, staat hieronder (ook om met de hand te doen of na te kijken). Settings → General → Pull Requests:
 
 - Allow merge commits: **uit**
 - Allow squash merging: **aan**, standaardbericht *Pull request title and description*
