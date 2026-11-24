@@ -1,7 +1,7 @@
 # Dev-workflow
 
 Bron van waarheid voor hoe alle projecten van flyingwing1994 via git en GitHub werken.
-Geldt voor mensen én Claude. Laatst bijgewerkt: 23-11-2026.
+Geldt voor mensen én Claude. Laatst bijgewerkt: 24-11-2026.
 
 ## 1. Basis
 
@@ -74,6 +74,7 @@ Een PR krijgt het label `risico` als **een** van deze twee iets vindt:
 5. deploy- of infraconfig (Dockerfile, compose, tunnel, netwerk)
 6. nieuwe packages of grote versiesprongen
 7. meer dan 400 gewijzigde regels
+8. instructies voor Claude of beheerscripts (`CLAUDE.md`, `.claude/`, `skills/`, `scripts/`)
 
 **Claude-review** — inhoudelijk oordeel op vaste criteria.
 
@@ -95,3 +96,16 @@ Een PR krijgt het label `risico` als **een** van deze twee iets vindt:
 ## 7. Geheimen
 
 Tokens en wachtwoorden komen nooit in git of in een chat. Michiel plaatst ze zelf als GitHub-secret. Claude ziet de waarde nooit.
+
+## 8. Waar Claude werkt: lokaal of cloud
+
+Waar Claude werkt maakt voor de checks niet uit: beide pushen een branch en openen een PR; checks, review, auto-merge en bord draaien altijd op GitHub.
+
+| | Cloud | Lokaal (pc van Michiel) |
+| --- | --- | --- |
+| Werkt door als de pc uit is | ja | nee |
+| Thuisnetwerk (ssh, Proxmox, HA, printer, MCP's) | nee | ja |
+| Regels | `CLAUDE.md` van de repo | globale `CLAUDE.md` + skill `dev-workflow` + `CLAUDE.md` van de repo |
+| Gebruiken voor | yaniv-scorekeeper, fotospel, feest, gopro-pipeline, .github | homelab-config, klipper-config |
+
+Daarom krijgt elke repo in zijn eigen `CLAUDE.md` de regel: *"Volg `WORKFLOW.md` en `skills/dev-workflow/SKILL.md` uit flyingwing1994/.github."* Zo gelden de afspraken in beide soorten sessies.

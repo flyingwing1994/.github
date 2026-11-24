@@ -46,6 +46,13 @@ class Regels(unittest.TestCase):
         for pad in ("Dockerfile", "docker/ha-mcp/docker-compose.yml", "infra/main.tf", "fly.toml"):
             self.assertIn(5, vlag([Wijziging("M", pad)]), pad)
 
+    def test_ai_instructies_en_scripts(self):
+        for pad in ("CLAUDE.md", "web/CLAUDE.md", ".claude/settings.json", "skills/dev-workflow/SKILL.md",
+                    "scripts/repo-inrichten.ps1"):
+            self.assertIn(8, vlag([Wijziging("M", pad)]), pad)
+        for pad in ("docs/scripts.md", "web/src/skills.ts", "README.md"):
+            self.assertNotIn(8, vlag([Wijziging("M", pad)]), pad)
+
     def test_regels(self):
         self.assertIn(7, vlag([Wijziging("M", "a.js", toegevoegd=300, verwijderd=101)]))
         self.assertNotIn(7, vlag([Wijziging("M", "a.js", toegevoegd=300, verwijderd=100)]))

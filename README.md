@@ -15,7 +15,7 @@ Standaard sjablonen, labels en checks voor alle repo's van flyingwing1994.
 
 ```powershell
 $d = "$HOME\.claude\skills\dev-workflow"; New-Item -ItemType Directory -Force $d | Out-Null
-Invoke-WebRequest https://raw.githubusercontent.com/flyingwing1994/.github/main/skills/dev-workflow/SKILL.md -OutFile "$d\SKILL.md"
+Invoke-WebRequest -Headers @{Accept='application/vnd.github.raw'} https://api.github.com/repos/flyingwing1994/.github/contents/skills/dev-workflow/SKILL.md -OutFile "$d\SKILL.md"
 ```
 
 En eenmalig in de globale `CLAUDE.md` (`$HOME\.claude\CLAUDE.md`):

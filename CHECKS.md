@@ -53,7 +53,8 @@ Dependabot-PR's hoeven geen issue te koppelen.
 4. database-schema's of migraties raakt (`migrations/`, `*.sql`, `schema.prisma`, …);
 5. deploy- of infraconfig raakt (`Dockerfile`, `compose*.yml`, `*.tf`, tunnel/nginx/netwerk, …);
 6. een nieuw package toevoegt of een grote versiesprong maakt (`package.json`, `requirements*.txt`, `pyproject.toml`; bij 0.x telt een minor-sprong als groot);
-7. meer dan 400 regels wijzigt (lockfiles niet meegeteld).
+7. meer dan 400 regels wijzigt (lockfiles niet meegeteld);
+8. instructies voor Claude of beheerscripts raakt (`CLAUDE.md`, `AGENTS.md`, `.claude/`, `skills/`, `scripts/`).
 
 De regels kijken naar bestandsnamen en packagelijsten. De inhoud (bijv. login-code in een gewoon bestand) beoordeelt de Claude-review. Het script zet het label alleen; weghalen doet Michiel.
 
@@ -89,6 +90,14 @@ De merge gebeurt met het workflow-token. Let op: zo'n merge start **geen** nieuw
 ## Instellingen per repo
 
 **Snelst: [`scripts/repo-inrichten.ps1`](scripts/repo-inrichten.ps1)**, lokaal door Michiel gedraaid (Claude kan repo-instellingen en secrets niet wijzigen, en ziet secrets nooit). Het script zet alles hieronder in één keer, voor een of meer repo's, en vraagt de twee tokens verborgen:
+
+Script ophalen (via de GitHub-API, zodat je nooit een verouderde versie uit een cache krijgt):
+
+```powershell
+Invoke-WebRequest -Headers @{Accept='application/vnd.github.raw'} https://api.github.com/repos/flyingwing1994/.github/contents/scripts/repo-inrichten.ps1 -OutFile "$HOME\repo-inrichten.ps1"
+```
+
+Gebruik (in PowerShell: `powershell -ExecutionPolicy Bypass -File "$HOME\repo-inrichten.ps1" …`):
 
 ```powershell
 # eenmalig: winget install GitHub.cli ; gh auth login
