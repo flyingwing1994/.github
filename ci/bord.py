@@ -198,6 +198,12 @@ def issue(bord: Bord, ev: dict, sjablonen: list[dict]) -> None:
         rest("-X", "DELETE", f"repos/{repo}/issues/{nr}/labels/wacht-op-info")
 
 
+def huidige_labels(repo: str, nummer: int) -> set[str]:
+    uit = subprocess.run(["gh", "api", f"repos/{repo}/issues/{nummer}/labels", "--jq", ".[].name"],
+                         capture_output=True, text=True, check=True).stdout
+    return {regel.strip() for regel in uit.splitlines() if regel.strip()}
+
+
 def pull_request(bord: Bord, ev: dict) -> None:
     pr = ev["pull_request"]
     if pr["head"]["repo"]["full_name"] != ev["repository"]["full_name"]:
@@ -206,7 +212,9 @@ def pull_request(bord: Bord, ev: dict) -> None:
     eigenaar, naam = ev["repository"]["full_name"].split("/")
     refs = graphql(os.environ["GH_TOKEN"], Q_SLUIT, o=eigenaar, r=naam, n=pr["number"])
     issues = refs["repository"]["pullRequest"]["closingIssuesReferences"]["nodes"]
-    risico = any(l["name"] == "risico" for l in pr.get("labels") or [])
+    # Labels vers ophalen: het event bevat de labels van het moment van openen, maar de checks
+    # of de review kunnen `risico` later gezet hebben.
+    risico = "risico" in huidige_labels(ev["repository"]["full_name"], pr["number"])
     if not issues:
         print("PR sluit geen issues: bord niet bijgewerkt.")
     for iss in issues:
