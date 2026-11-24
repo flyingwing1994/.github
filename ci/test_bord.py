@@ -1,7 +1,7 @@
 """Tests voor ci/bord.py. Draaien met: python -m unittest discover -s ci"""
 import unittest
 
-from bord import doelstatus_issue, doelstatus_pr, prioriteit, secties, triage_compleet
+from bord import canoniek, doelstatus_issue, norm, doelstatus_pr, prioriteit, secties, triage_compleet
 
 FEATURE = {
     "labels": ["feature"],
@@ -74,6 +74,14 @@ class Status(unittest.TestCase):
         self.assertEqual(doelstatus_pr(True, "Bezig"), "In review")
         self.assertEqual(doelstatus_pr(False, "In review"), "Bezig")
         self.assertIsNone(doelstatus_pr(True, "Klaar"))
+
+
+class Namen(unittest.TestCase):
+    def test_hoofdletters(self):
+        self.assertEqual(norm("in  Review "), norm("In review"))
+        self.assertEqual(canoniek("in Review"), "In review")
+        self.assertEqual(canoniek("Klaar"), "Klaar")
+        self.assertIsNone(canoniek(None))
 
 
 if __name__ == "__main__":

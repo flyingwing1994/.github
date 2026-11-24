@@ -95,6 +95,18 @@ def doelstatus_issue(compleet: bool, huidig: str | None) -> str | None:
     return "Gepland" if compleet else "Idee"
 
 
+STATUSSEN = ("Idee", "Gepland", "Bezig", "In review", "Klaar")
+
+
+def norm(naam: str | None) -> str:
+    return " ".join((naam or "").split()).casefold()
+
+
+def canoniek(status: str | None) -> str | None:
+    """Status van het bord terug naar de vaste schrijfwijze (onbekend blijft zoals het is)."""
+    return next((s for s in STATUSSEN if norm(s) == norm(status)), status)
+
+
 # --------------------------------------------------------------------------- GitHub
 def graphql(token: str, query: str, **variabelen) -> dict:
     payload = {"query": query, "variables": variabelen}
@@ -131,20 +143,22 @@ class Bord:
         if not p:
             raise SystemExit(f"Project {nummer} van {eigenaar} niet gevonden (token of nummer?).")
         self.id = p["id"]
-        self.velden = {f["name"]: f for f in p["fields"]["nodes"] if f}
+        # Namen zonder onderscheid in hoofdletters/spaties: 'In review' = 'in Review'.
+        self.velden = {norm(f["name"]): f for f in p["fields"]["nodes"] if f}
         for naam in ("Status", "Prioriteit"):
-            if naam not in self.velden:
-                gevonden = ", ".join(repr(n) for n in self.velden) or "geen"
+            if norm(naam) not in self.velden:
+                gevonden = ", ".join(repr(f["name"]) for f in self.velden.values()) or "geen"
                 raise SystemExit(f"Veld '{naam}' (single select) ontbreekt op het bord. "
                                  f"Gevonden single select-velden: {gevonden}.")
 
     def toevoegen(self, content_id: str) -> tuple[str, str | None]:
         item = graphql(self.token, M_ADD, p=self.id, c=content_id)["addProjectV2ItemById"]["item"]
-        return item["id"], (item.get("fieldValueByName") or {}).get("name")
+        huidig = (item.get("fieldValueByName") or {}).get("name")
+        return item["id"], canoniek(huidig)
 
     def zet(self, item: str, veld: str, waarde: str) -> None:
-        f = self.velden[veld]
-        optie = next((o["id"] for o in f["options"] if o["name"] == waarde), None)
+        f = self.velden[norm(veld)]
+        optie = next((o["id"] for o in f["options"] if norm(o["name"]) == norm(waarde)), None)
         if optie is None:
             opties = ", ".join(repr(o["name"]) for o in f["options"])
             raise SystemExit(f"Optie '{waarde}' ontbreekt in veld '{veld}' op het bord. Gevonden: {opties}.")
