@@ -49,12 +49,23 @@ Taal: Nederlands. Conventional-Commits-voorvoegsels in het Engels.
 
 Op de vraag "overzicht": in review (PR's met `risico`), Urgent, en de top van Gepland op het bord.
 
-## 5. Nieuwe repo of project
+## 5. Nieuwe repo of project (ook bij de uitrol naar bestaande repo's)
 
 1. Stel bij een nieuw project altijd een repo voor, met advies privé of openbaar en de reden. Michiel beslist.
-2. Inrichten (issue → PR in die repo):
-   - `.github/workflows/pr.yml` uit `templates/pr.yml` (commando's invullen) en `.github/workflows/bord.yml` uit `templates/bord.yml` (beide in `flyingwing1994/.github`).
+2. Eerst kijken: taal, packagebestanden, tests, Dockerfile/compose, deploy, en of er al workflows of een `CLAUDE.md` zijn. Iets dat rechtstreeks naar `main` pusht (bijv. Klipper-Backup) eerst met Michiel bespreken.
+3. Michiel draait het inrichtscript (merge-instellingen, beveiliging, ruleset bij openbaar, labels, secrets). Ophalen via de API, niet via raw.githubusercontent.com (cache):
+   `Invoke-WebRequest -Headers @{Accept='application/vnd.github.raw'} https://api.github.com/repos/flyingwing1994/.github/contents/scripts/repo-inrichten.ps1 -OutFile "$HOME\repo-inrichten.ps1"`
+   en dan `powershell -ExecutionPolicy Bypass -File "$HOME\repo-inrichten.ps1" -Repos <naam>` (tokens zijn onthouden met `-Onthoud`).
+4. Eén PR "centrale workflow aansluiten" (issue → PR in die repo):
+   - `.github/workflows/pr.yml` uit `templates/pr.yml`: commando's invullen; `node-version`/`python-version` **gelijk aan de Dockerfile**; job `automerge` met `issues: write`; **`docker-build: true` voor alles wat op de server draait** (besluit Michiel).
+   - `.github/workflows/bord.yml` uit `templates/bord.yml`.
    - `.github/dependabot.yml`: wekelijks, `cooldown: default-days: 7`, gebundeld; ecosystemen van de repo + `github-actions` (+ `docker` waar van toepassing).
-   - Testbasis-issue als er nog geen tests zijn.
-3. Michiel draait `scripts/repo-inrichten.ps1 -Repos <naam>`: merge-instellingen, beveiliging, ruleset (openbaar), labels en de secrets `CLAUDE_CODE_OAUTH_TOKEN` en `PROJECT_TOKEN`.
-4. Privé-repo met echte packagebestanden: OSV-Scanner toevoegen (dependency-review werkt daar niet).
+   - `CLAUDE.md` met de werkwijze-regel (zie WORKFLOW.md §8) en een korte beschrijving van de repo.
+   - README: alinea over de werkwijze.
+5. Daarna: testbasis-issue als er nog geen tests zijn; issue voor lint/format als dat ontbreekt. Pas na de testbasis `tests-verplicht: true` (aparte PR, want `pr.yml` = risico).
+6. Valkuilen uit de proef:
+   - Nep-sleutels en -tokens in tests **per run willekeurig** maken (bijv. `randomUUID()`); vaste waarden geven vals alarm in de geheimen-scan, en geschiedenis herschrijven kan niet.
+   - Wijzigingen aan `pr.yml` krijgen altijd `risico`; houd ze apart van inhoudelijk werk, zodat dat werk automatisch kan mergen.
+   - PR's die een andere PR nodig hebben: als concept openen en pas klaarzetten als de eerste gemerged is.
+   - Openbare repo's: de ruleset noemt de verplichte checks; nieuwe check-namen moeten daar ook in (via het inrichtscript).
+7. Privé-repo met echte packagebestanden: OSV-Scanner toevoegen (dependency-review werkt daar niet).

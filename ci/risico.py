@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Proces-check voor PR's: issue-koppeling en de vaste risicoregels uit WORKFLOW.md §5.
+"""Proces-check voor PR's: issue-koppeling en de vaste risicoregels (1-8) uit WORKFLOW.md §5.
 
 Gebruik (lokaal of in GitHub Actions, vanuit de root van de repo die de PR bevat):
     python risico.py --base BASE_SHA --head HEAD_SHA
@@ -60,6 +60,9 @@ RE_INFRA = re.compile(
     re.IGNORECASE,
 )
 
+# Regel 8: instructies voor Claude en beheerscripts.
+RE_AI = re.compile(r"(^|/)(CLAUDE\.md|AGENTS\.md)$|(^|/)\.claude/|^skills/|^scripts/", re.IGNORECASE)
+
 REGELS = {
     1: "raakt `.github/workflows/`",
     2: "verwijdert bestanden of mappen",
@@ -68,6 +71,7 @@ REGELS = {
     5: "raakt deploy- of infraconfig",
     6: "nieuwe packages of grote versiesprongen",
     7: f"meer dan {MAX_REGELS} gewijzigde regels (lockfiles niet meegeteld)",
+    8: "raakt instructies voor Claude of beheerscripts (`CLAUDE.md`, `.claude/`, `skills/`, `scripts/`)",
 }
 
 
@@ -194,6 +198,8 @@ def beoordeel(
             zet(4, f"`{w.pad}`")
         if any(RE_INFRA.search(p) for p in paden):
             zet(5, f"`{w.pad}`")
+        if any(RE_AI.search(p) for p in paden):
+            zet(8, f"`{w.pad}`")
         for reden in package_bevindingen(w, lees_base, lees_head):
             zet(6, reden)
         if w.pad.rsplit("/", 1)[-1] not in LOCKFILES:
