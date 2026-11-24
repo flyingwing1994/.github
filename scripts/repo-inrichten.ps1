@@ -41,7 +41,9 @@ $StandaardLabels = @('documentation', 'duplicate', 'enhancement', 'good first is
   'invalid', 'question', 'wontfix', 'accessibility')
 
 # ------------------------------------------------------------------ hulpjes
-function Gh {
+function GhRun {
+  # Let op: geen functie 'gh' noemen. PowerShell is hoofdletterongevoelig en functies gaan voor
+  # programma's, dan roept '& gh' zichzelf aan in plaats van gh.exe.
   # Roept gh aan met alle meegegeven argumenten. Uitvoer en foutmeldingen blijven gescheiden,
   # zodat een waarschuwing nooit in een waarde terechtkomt; bij een fout volgt een duidelijke melding.
   $fout = [System.IO.Path]::GetTempFileName()
@@ -76,7 +78,7 @@ function LeesSecret([string] $Naam) {
 
 function LeesLabels {
   # labels.yml uit de .github-repo; eenvoudig formaat: - name / color / description.
-  $tekst = Gh api "repos/$Eigenaar/.github/contents/labels.yml" -H 'Accept: application/vnd.github.raw'
+  $tekst = GhRun api "repos/$Eigenaar/.github/contents/labels.yml" -H 'Accept: application/vnd.github.raw'
   $labels = @(); $huidig = $null
   foreach ($regel in ($tekst -split "`n")) {
     if ($regel -match '^\s*-\s*name:\s*(.+?)\s*$') {
@@ -95,7 +97,7 @@ function LeesLabels {
 
 # ------------------------------------------------------------------ onderdelen
 function ZetMergeInstellingen([string] $R) {
-  Gh api -X PATCH "repos/$R" `
+  GhRun api -X PATCH "repos/$R" `
     -F allow_squash_merge=true -F allow_merge_commit=false -F allow_rebase_merge=false `
     -F delete_branch_on_merge=true -F allow_auto_merge=true -F allow_update_branch=true `
     -f squash_merge_commit_title=PR_TITLE -f squash_merge_commit_message=PR_BODY --silent | Out-Null
@@ -104,8 +106,8 @@ function ZetMergeInstellingen([string] $R) {
 
 function ZetBeveiliging([string] $R, [bool] $Openbaar) {
   # Dependabot alerts zet ook de dependency graph aan.
-  Gh api -X PUT "repos/$R/vulnerability-alerts" --silent | Out-Null
-  Gh api -X PUT "repos/$R/automated-security-fixes" --silent | Out-Null
+  GhRun api -X PUT "repos/$R/vulnerability-alerts" --silent | Out-Null
+  GhRun api -X PUT "repos/$R/automated-security-fixes" --silent | Out-Null
   Stap 'beveiliging: dependency graph, Dependabot alerts en security updates'
   if ($Openbaar) {
     GhJson PATCH "repos/$R" @{ security_and_analysis = @{
@@ -141,7 +143,7 @@ function ZetRuleset([string] $R) {
         } }
     )
   }
-  $bestaand = (Gh api "repos/$R/rulesets" | ConvertFrom-Json) | Where-Object { $_.name -eq 'main' } | Select-Object -First 1
+  $bestaand = (GhRun api "repos/$R/rulesets" | ConvertFrom-Json) | Where-Object { $_.name -eq 'main' } | Select-Object -First 1
   if ($bestaand) {
     GhJson PUT "repos/$R/rulesets/$($bestaand.id)" $ruleset | Out-Null
     Stap "ruleset 'main' bijgewerkt ($($VerplichteChecks.Count) verplichte checks)"
@@ -153,15 +155,15 @@ function ZetRuleset([string] $R) {
 
 function ZetLabels([string] $R, [array] $Labels) {
   foreach ($l in $Labels) {
-    Gh label create $l.name --repo $R --color $l.color --description $l.description --force | Out-Null
+    GhRun label create $l.name --repo $R --color $l.color --description $l.description --force | Out-Null
   }
   $weg = @()
   foreach ($naam in $StandaardLabels) {
     & gh api "repos/$R/labels/$([uri]::EscapeDataString($naam))" --silent 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) { continue }
-    $gebruik = Gh api "repos/$R/issues?state=all&per_page=1&labels=$([uri]::EscapeDataString($naam))" --jq 'length'
+    $gebruik = GhRun api "repos/$R/issues?state=all&per_page=1&labels=$([uri]::EscapeDataString($naam))" --jq 'length'
     if ([int]$gebruik -eq 0) {
-      Gh api -X DELETE "repos/$R/labels/$([uri]::EscapeDataString($naam))" --silent | Out-Null
+      GhRun api -X DELETE "repos/$R/labels/$([uri]::EscapeDataString($naam))" --silent | Out-Null
       $weg += $naam
     }
   }
@@ -184,8 +186,10 @@ if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
 }
 # Inlogcontrole via een echte API-vraag (gh auth status geeft onder PowerShell 5 niet altijd exitcode 0).
 Write-Host 'Inlog controleren...'
-$login = & gh api user --jq '.login' 2>$null
-if ($LASTEXITCODE -ne 0 -or -not $login) { throw 'Niet ingelogd bij GitHub. Draai eerst: gh auth login' }
+$login = & gh api user --jq '.login' 2>&1
+if ($LASTEXITCODE -ne 0 -or -not $login) {
+  throw "Inlogcontrole mislukt. Melding van gh: $login`nNiet ingelogd? Draai dan: gh auth login"
+}
 Write-Host "Ingelogd als $login."
 Write-Host 'labels.yml ophalen...'
 
@@ -203,7 +207,7 @@ foreach ($naam in $Repos) {
   $R = if ($naam -like '*/*') { $naam } else { "$Eigenaar/$naam" }
   Write-Host "`n== $R"
   try {
-    $openbaar = (Gh api "repos/$R" --jq '.visibility') -eq 'public'
+    $openbaar = (GhRun api "repos/$R" --jq '.visibility') -eq 'public'
     Stap ("zichtbaarheid: " + $(if ($openbaar) { 'openbaar' } else { 'prive' }))
     Bezig 'merge-instellingen'; ZetMergeInstellingen $R
     Bezig 'beveiliging'; ZetBeveiliging $R $openbaar
