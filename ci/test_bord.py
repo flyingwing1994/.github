@@ -1,5 +1,10 @@
 """Tests voor ci/bord.py. Draaien met: python -m unittest discover -s ci"""
+import os
+import subprocess
 import unittest
+from unittest import mock
+
+import bord
 
 from bord import canoniek, doelstatus_issue, norm, doelstatus_pr, prioriteit, secties, triage_compleet
 
@@ -82,6 +87,60 @@ class Namen(unittest.TestCase):
         self.assertEqual(canoniek("in Review"), "In review")
         self.assertEqual(canoniek("Klaar"), "Klaar")
         self.assertIsNone(canoniek(None))
+
+
+class NepBord:
+    """Houdt bij wat het script op het bord zou zetten."""
+
+    def __init__(self, huidig):
+        self.huidig, self.gezet = huidig, []
+
+    def toevoegen(self, content_id):
+        return "item-" + content_id, self.huidig
+
+    def zet(self, item, veld, waarde):
+        self.gezet.append((item, veld, waarde))
+
+
+PR_EVENT = {
+    "repository": {"full_name": "flyingwing1994/test"},
+    "pull_request": {"number": 7, "labels": [],  # labels uit het event: nog zonder risico
+                     "head": {"repo": {"full_name": "flyingwing1994/test"}}},
+}
+GESLOTEN = {"repository": {"pullRequest": {"closingIssuesReferences": {"nodes": [
+    {"id": "I_1", "number": 3, "repository": {"nameWithOwner": "flyingwing1994/test"}}]}}}}
+
+
+class PullRequest(unittest.TestCase):
+    def draai(self, labels, huidig="Bezig"):
+        b = NepBord(huidig)
+        with mock.patch.object(bord, "graphql", return_value=GESLOTEN), \
+             mock.patch.object(bord, "huidige_labels", return_value=labels), \
+             mock.patch.dict(os.environ, {"GH_TOKEN": "x"}):
+            bord.pull_request(b, PR_EVENT)
+        return b.gezet
+
+    def test_risico_later_gezet_gaat_naar_in_review(self):
+        self.assertEqual(self.draai({"risico", "feature"}), [("item-I_1", "Status", "In review")])
+
+    def test_zonder_risico_blijft_bezig(self):
+        self.assertEqual(self.draai({"feature"}), [])
+        self.assertEqual(self.draai({"feature"}, huidig="Gepland"), [("item-I_1", "Status", "Bezig")])
+
+    def test_fork_wordt_genegeerd(self):
+        ev = {**PR_EVENT, "pull_request": {**PR_EVENT["pull_request"],
+                                           "head": {"repo": {"full_name": "iemand/fork"}}}}
+        b = NepBord("Bezig")
+        bord.pull_request(b, ev)
+        self.assertEqual(b.gezet, [])
+
+
+class HuidigeLabels(unittest.TestCase):
+    def test_leest_labels_via_api(self):
+        uit = subprocess.CompletedProcess([], 0, stdout="feature\nrisico\n\n")
+        with mock.patch.object(bord.subprocess, "run", return_value=uit) as run:
+            self.assertEqual(bord.huidige_labels("o/r", 7), {"feature", "risico"})
+        self.assertIn("repos/o/r/issues/7/labels", run.call_args.args[0])
 
 
 if __name__ == "__main__":
