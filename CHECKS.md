@@ -80,10 +80,9 @@ Vaste criteria: correctheid (doet het wat het issue vraagt), beveiliging, tests,
 `automerge.yml` draait als laatste job, pas als alle jobs in `needs` geslaagd zijn. Hij merget **niet** bij:
 het label `risico`, een draft-PR, een PR vanaf een fork, of een auteur die niet de eigenaar of Dependabot is.
 
-| Repo | Hoe |
-| --- | --- |
-| Openbaar | Ingebouwde auto-merge van GitHub (`--auto`), afgedwongen door een ruleset met verplichte checks. Kan dat niet, dan direct squash. |
-| Privé (geen Pro) | Direct squash-merge door de workflow. Er is geen technische blokkade op `main`; "nooit rechtstreeks naar main" is daar een afspraak. |
+Na groen: **squash-merge** van precies het geteste commit. Op openbare repo's dwingt de ruleset daarnaast de verplichte checks af (GitHub weigert de merge anders); op privé-repo's (geen Pro) is "nooit rechtstreeks naar main" een afspraak.
+
+Daarna sluit de auto-merge zelf de gekoppelde issues (`Closes #nr`) en verwijdert hij de branch: GitHub doet dat niet als het workflow-token mergt. Daarom heeft de job `automerge` ook `issues: write` nodig in `pr.yml`.
 
 De merge gebeurt met het workflow-token. Let op: zo'n merge start **geen** nieuwe workflows op `main` (bijv. een deploy bij een push naar `main`). Een repo die dat nodig heeft, meldt dit in een issue.
 
