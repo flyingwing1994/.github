@@ -64,7 +64,8 @@ function GhJson {
   } finally { Remove-Item $fout -ErrorAction SilentlyContinue }
 }
 
-function Stap([string] $Tekst) { Write-Host "  - $Tekst" }
+function Stap([string] $Tekst) { Write-Host "    OK  $Tekst" -ForegroundColor Green }
+function Bezig([string] $Tekst) { Write-Host "  ... $Tekst" -ForegroundColor DarkGray }
 
 function LeesSecret([string] $Naam) {
   $veilig = Read-Host "Plak $Naam (Enter = overslaan)" -AsSecureString
@@ -181,8 +182,13 @@ function ZetSecrets([string] $R, [hashtable] $Secrets) {
 if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
   throw 'GitHub CLI (gh) niet gevonden. Installeer met: winget install GitHub.cli  (daarna: gh auth login)'
 }
-& gh auth status 2>&1 | Out-Null
-if ($LASTEXITCODE -ne 0) { throw 'Niet ingelogd bij GitHub. Draai eerst: gh auth login' }
+# Inlogcontrole via een echte API-vraag (gh auth status geeft onder PowerShell 5 niet altijd exitcode 0).
+Write-Host 'Inlog controleren...'
+$login = & gh api user --jq '.login' 2>$null
+if ($LASTEXITCODE -ne 0 -or -not $login) { throw 'Niet ingelogd bij GitHub. Draai eerst: gh auth login' }
+Write-Host "Ingelogd als $login."
+Write-Host 'labels.yml ophalen...'
+
 
 $labels = LeesLabels
 $secrets = @{}
@@ -199,13 +205,13 @@ foreach ($naam in $Repos) {
   try {
     $openbaar = (Gh api "repos/$R" --jq '.visibility') -eq 'public'
     Stap ("zichtbaarheid: " + $(if ($openbaar) { 'openbaar' } else { 'prive' }))
-    ZetMergeInstellingen $R
-    ZetBeveiliging $R $openbaar
-    if ($openbaar -and -not $GeenRuleset) { ZetRuleset $R }
+    Bezig 'merge-instellingen'; ZetMergeInstellingen $R
+    Bezig 'beveiliging'; ZetBeveiliging $R $openbaar
+    if ($openbaar -and -not $GeenRuleset) { Bezig 'ruleset'; ZetRuleset $R }
     elseif (-not $openbaar) { Stap 'ruleset: overgeslagen (prive zonder Pro; zie CHECKS.md)' }
-    ZetLabels $R $labels
-    if (-not $GeenSecrets) { ZetSecrets $R $secrets }
-    Write-Host '  OK' -ForegroundColor Green
+    Bezig 'labels (kan even duren)'; ZetLabels $R $labels
+    if (-not $GeenSecrets) { Bezig 'secrets'; ZetSecrets $R $secrets }
+    Write-Host "  Klaar met $R" -ForegroundColor Green
   } catch {
     Write-Host "  FOUT: $($_.Exception.Message)" -ForegroundColor Red
     $fouten += $R
