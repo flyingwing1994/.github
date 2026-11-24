@@ -42,19 +42,26 @@ $StandaardLabels = @('documentation', 'duplicate', 'enhancement', 'good first is
 
 # ------------------------------------------------------------------ hulpjes
 function Gh {
-  # Roept gh aan met alle meegegeven argumenten; stopt met een duidelijke melding als het misgaat.
-  $uit = & gh @args 2>&1
-  if ($LASTEXITCODE -ne 0) { throw "gh $($args -join ' ') mislukte: $uit" }
-  return $uit
+  # Roept gh aan met alle meegegeven argumenten. Uitvoer en foutmeldingen blijven gescheiden,
+  # zodat een waarschuwing nooit in een waarde terechtkomt; bij een fout volgt een duidelijke melding.
+  $fout = [System.IO.Path]::GetTempFileName()
+  try {
+    $uit = & gh @args 2>$fout
+    if ($LASTEXITCODE -ne 0) { throw "gh $($args -join ' ') mislukte: $(Get-Content $fout -Raw)" }
+    return $uit
+  } finally { Remove-Item $fout -ErrorAction SilentlyContinue }
 }
 
 function GhJson {
   # Stuurt JSON naar gh api (via stdin).
   param([string] $Methode, [string] $Pad, [object] $Data)
   $json = $Data | ConvertTo-Json -Depth 10 -Compress
-  $uit = $json | & gh api -X $Methode $Pad --input - 2>&1
-  if ($LASTEXITCODE -ne 0) { throw "gh api -X $Methode $Pad mislukte: $uit" }
-  return $uit
+  $fout = [System.IO.Path]::GetTempFileName()
+  try {
+    $uit = $json | & gh api -X $Methode $Pad --input - 2>$fout
+    if ($LASTEXITCODE -ne 0) { throw "gh api -X $Methode $Pad mislukte: $(Get-Content $fout -Raw)" }
+    return $uit
+  } finally { Remove-Item $fout -ErrorAction SilentlyContinue }
 }
 
 function Stap([string] $Tekst) { Write-Host "  - $Tekst" }
@@ -163,7 +170,8 @@ function ZetLabels([string] $R, [array] $Labels) {
 function ZetSecrets([string] $R, [hashtable] $Secrets) {
   foreach ($naam in $Secrets.Keys) {
     if ([string]::IsNullOrEmpty($Secrets[$naam])) { continue }
-    & gh secret set $naam --repo $R --body $Secrets[$naam] 2>&1 | Out-Null
+    # Via stdin, zodat het token niet in de proceslijst staat (gh haalt de regelovergang eraf).
+    $Secrets[$naam] | & gh secret set $naam --repo $R 2>&1 | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Secret $naam zetten in $R mislukte." }
     Stap "secret $naam gezet"
   }
