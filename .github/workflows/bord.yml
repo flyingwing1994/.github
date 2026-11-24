@@ -1,0 +1,54 @@
+# Centrale bord-workflow: zet issues op het GitHub Project-bord en verplaatst ze bij PR's.
+# Zie CHECKS.md (Bord) en WORKFLOW.md §2. Secret PROJECT_TOKEN: classic token met alleen `project`-scope.
+# Wijzigingen hier krijgen altijd het label `risico` (regel 1): Michiel merget zelf.
+name: Bord
+
+on:
+  workflow_call:
+    inputs:
+      project:
+        description: Nummer van het Project-bord (uit de URL github.com/users/<eigenaar>/projects/<nummer>).
+        type: number
+        required: true
+      eigenaar:
+        description: Eigenaar van het bord.
+        type: string
+        default: flyingwing1994
+      central-ref:
+        description: Versie van de centrale scripts. Alleen de .github-repo zelf wijkt hiervan af.
+        type: string
+        default: main
+    secrets:
+      PROJECT_TOKEN:
+        required: true
+
+jobs:
+  bord:
+    name: bord
+    if: github.event_name == 'issues' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - name: Centrale scripts ophalen
+        env:
+          CENTRAL_REF: ${{ inputs.central-ref }}
+        run: |
+          git init -q "$RUNNER_TEMP/central"
+          git -C "$RUNNER_TEMP/central" fetch -q --depth 1 https://github.com/flyingwing1994/.github "$CENTRAL_REF"
+          git -C "$RUNNER_TEMP/central" checkout -q FETCH_HEAD
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install -q -r "$RUNNER_TEMP/central/ci/requirements-bord.txt"
+      - name: Bord bijwerken
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          PROJECT: ${{ inputs.project }}
+          EIGENAAR: ${{ inputs.eigenaar }}
+        run: |
+          # De centrale sjablonen gelden voor alle repo's zonder eigen sjablonen.
+          "$RUNNER_TEMP/venv/bin/python" "$RUNNER_TEMP/central/ci/bord.py" \
+            --eigenaar "$EIGENAAR" --project "$PROJECT" --sjablonen "$RUNNER_TEMP/central/.github/ISSUE_TEMPLATE"

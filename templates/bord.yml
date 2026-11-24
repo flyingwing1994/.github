@@ -1,0 +1,24 @@
+# Sjabloon: kopieer naar .github/workflows/bord.yml in een repo. Zie CHECKS.md (Bord).
+# Vereist het secret PROJECT_TOKEN (classic token met alleen `project`-scope).
+name: Bord
+
+on:
+  issues:
+    types: [opened, edited, reopened]
+  pull_request:
+    types: [opened, reopened, edited, ready_for_review, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  bord:
+    uses: flyingwing1994/.github/.github/workflows/bord.yml@main
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    with:
+      project: 1   # nummer van het bord
+    secrets:
+      PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
