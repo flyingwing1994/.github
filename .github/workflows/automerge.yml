@@ -1,7 +1,9 @@
 # Centrale auto-merge, aangeroepen als laatste job (needs: alle checks). Zie CHECKS.md en WORKFLOW.md §5.
 # - Nooit bij label `risico`, een draft-PR, een fork of een onbekende auteur: dan merget Michiel zelf.
-# - Openbare repo: ingebouwde auto-merge van GitHub (wacht op de verplichte checks uit de ruleset).
-# - Privé-repo (geen Pro, geen rulesets): direct squash-mergen; de caller draait deze job pas als alles groen is.
+# - Squash-merge van precies het geteste commit. Deze job draait pas als alle jobs in `needs` geslaagd
+#   zijn; op openbare repo's dwingt de ruleset daarnaast de verplichte checks af (GitHub weigert anders).
+# - Daarna: gekoppelde issues sluiten en de branch verwijderen. GitHub doet dat zelf niet als het
+#   workflow-token mergt (sluitwoorden en "delete head branch" werken dan niet).
 # Wijzigingen hier krijgen altijd het label `risico` (regel 1): Michiel merget zelf.
 name: Auto-merge
 
@@ -22,14 +24,16 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      issues: write
     env:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
       PR: ${{ github.event.pull_request.number }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      ZICHTBAARHEID: ${{ github.event.repository.visibility }}
+      HEAD_REF: ${{ github.event.pull_request.head.ref }}
     steps:
       - name: Mergen als er geen risicovlag is
+        id: merge
         run: |
           # Labels vers ophalen: de checks kunnen `risico` net gezet hebben.
           labels=$(gh api "repos/$REPO/issues/$PR/labels" --jq '.[].name')
@@ -41,12 +45,33 @@ jobs:
             echo "PR is niet meer open; niets te doen."
             exit 0
           fi
-          if [ "$ZICHTBAARHEID" = public ]; then
-            if gh pr merge "$PR" -R "$REPO" --auto --squash --match-head-commit "$HEAD_SHA"; then
-              echo "Ingebouwde auto-merge aangezet." | tee -a "$GITHUB_STEP_SUMMARY"
-              exit 0
-            fi
-            echo "Ingebouwde auto-merge niet mogelijk (geen wachtende verplichte checks); direct mergen."
-          fi
           gh pr merge "$PR" -R "$REPO" --squash --match-head-commit "$HEAD_SHA"
           echo "Gemerged (squash)." | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "gemerged=true" >> "$GITHUB_OUTPUT"
+
+      - name: Gekoppelde issues sluiten
+        if: steps.merge.outputs.gemerged == 'true'
+        run: |
+          eigenaar=${REPO%/*}; naam=${REPO#*/}
+          # shellcheck disable=SC2016
+          issues=$(gh api graphql -f o="$eigenaar" -f r="$naam" -F n="$PR" -f query='
+            query($o:String!,$r:String!,$n:Int!){ repository(owner:$o,name:$r){ pullRequest(number:$n){
+              closingIssuesReferences(first:20){ nodes{ number repository{ nameWithOwner } } } } } }' \
+            --jq '.data.repository.pullRequest.closingIssuesReferences.nodes[]
+                  | select(.repository.nameWithOwner == env.REPO) | .number')
+          for nr in $issues; do
+            if [ "$(gh api "repos/$REPO/issues/$nr" --jq .state)" = open ]; then
+              gh api -X POST "repos/$REPO/issues/$nr/comments" -f body="Gesloten door de automatische merge van #$PR." --silent
+              gh api -X PATCH "repos/$REPO/issues/$nr" -f state=closed -f state_reason=completed --silent
+              echo "Issue #$nr gesloten." | tee -a "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+
+      - name: Branch verwijderen
+        if: steps.merge.outputs.gemerged == 'true'
+        run: |
+          if gh api -X DELETE "repos/$REPO/git/refs/heads/$HEAD_REF" --silent; then
+            echo "Branch $HEAD_REF verwijderd." | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::Branch $HEAD_REF niet verwijderd (al weg of beschermd)."
+          fi
