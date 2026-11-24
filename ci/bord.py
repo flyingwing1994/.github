@@ -146,7 +146,8 @@ class Bord:
         f = self.velden[veld]
         optie = next((o["id"] for o in f["options"] if o["name"] == waarde), None)
         if optie is None:
-            raise SystemExit(f"Optie '{waarde}' ontbreekt in veld '{veld}' op het bord.")
+            opties = ", ".join(repr(o["name"]) for o in f["options"])
+            raise SystemExit(f"Optie '{waarde}' ontbreekt in veld '{veld}' op het bord. Gevonden: {opties}.")
         graphql(self.token, M_SET, p=self.id, i=item, f=f["id"], o=optie)
         print(f"{veld} → {waarde}")
 
