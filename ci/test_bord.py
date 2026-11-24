@@ -143,5 +143,33 @@ class HuidigeLabels(unittest.TestCase):
         self.assertIn("repos/o/r/issues/7/labels", run.call_args.args[0])
 
 
+class GraphQL(unittest.TestCase):
+    def uitvoer(self, *antwoorden):
+        return [subprocess.CompletedProcess([], code, stdout=tekst, stderr="fout") for code, tekst in antwoorden]
+
+    def test_tijdelijke_fout_wordt_opnieuw_geprobeerd(self):
+        antwoorden = self.uitvoer((1, "<html>502</html>"), (0, '{"data": {"ok": 1}}'))
+        with mock.patch.object(bord.subprocess, "run", side_effect=antwoorden) as run, \
+             mock.patch.object(bord.time, "sleep"):
+            self.assertEqual(bord.graphql("t", "q"), {"ok": 1})
+        self.assertEqual(run.call_count, 2)
+
+    def test_inhoudelijke_fout_niet_opnieuw(self):
+        antwoorden = self.uitvoer((1, '{"errors": [{"message": "niet gevonden"}]}'))
+        with mock.patch.object(bord.subprocess, "run", side_effect=antwoorden) as run, \
+             self.assertRaises(SystemExit) as fout:
+            bord.graphql("t", "q")
+        self.assertEqual(run.call_count, 1)
+        self.assertIn("niet gevonden", str(fout.exception))
+
+    def test_blijvende_fout_na_drie_pogingen(self):
+        antwoorden = self.uitvoer(*[(1, "")] * 3)
+        with mock.patch.object(bord.subprocess, "run", side_effect=antwoorden) as run, \
+             mock.patch.object(bord.time, "sleep"), self.assertRaises(SystemExit) as fout:
+            bord.graphql("t", "q")
+        self.assertEqual(run.call_count, 3)
+        self.assertIn("3 pogingen", str(fout.exception))
+
+
 if __name__ == "__main__":
     unittest.main()
