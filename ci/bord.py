@@ -24,6 +24,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 PRIORITEITEN = ("Urgent", "Hoog", "Middel", "Laag")
@@ -108,15 +109,30 @@ def canoniek(status: str | None) -> str | None:
 
 
 # --------------------------------------------------------------------------- GitHub
+POGINGEN = 3
+
+
 def graphql(token: str, query: str, **variabelen) -> dict:
+    """GraphQL via gh. Tijdelijke fouten (geen geldige JSON, serverfout) worden opnieuw geprobeerd;
+    inhoudelijke fouten (veld `errors`) niet."""
     payload = {"query": query, "variables": variabelen}
     env = {**os.environ, "GH_TOKEN": token}
-    uit = subprocess.run(["gh", "api", "graphql", "--input", "-"], input=json.dumps(payload),
-                         capture_output=True, text=True, env=env)
-    data = json.loads(uit.stdout or "{}")
-    if uit.returncode or data.get("errors"):
-        raise SystemExit(f"GraphQL-fout: {data.get('errors') or uit.stderr.strip()}")
-    return data["data"]
+    for poging in range(1, POGINGEN + 1):
+        uit = subprocess.run(["gh", "api", "graphql", "--input", "-"], input=json.dumps(payload),
+                             capture_output=True, text=True, env=env)
+        try:
+            data = json.loads(uit.stdout or "{}")
+        except json.JSONDecodeError:
+            data = None
+        if isinstance(data, dict) and data.get("errors"):
+            raise SystemExit(f"GraphQL-fout: {data['errors']}")
+        if data is not None and not uit.returncode and "data" in data:
+            return data["data"]
+        if poging < POGINGEN:
+            print(f"Tijdelijke fout van GitHub (poging {poging}/{POGINGEN}); opnieuw over {2 * poging} s.")
+            time.sleep(2 * poging)
+    melding = (uit.stderr or uit.stdout or "").strip()[:500]
+    raise SystemExit(f"GitHub gaf na {POGINGEN} pogingen geen geldig antwoord: {melding}")
 
 
 def rest(*args: str, data: dict | None = None) -> None:
